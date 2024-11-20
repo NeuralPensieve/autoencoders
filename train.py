@@ -16,6 +16,7 @@ from datasets import CustomImageDataset
 from utils import (
     plot_reconstructions, 
     visualize_latent_space, 
+    visualize_similar_images,
 )
 
 @dataclass
@@ -74,7 +75,14 @@ def train(args):
     
     # Load dataset
     trainset = CustomImageDataset(root_dir=f"{args.data_folder}", transform=transform, limit=args.limit)
-    trainloader = DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=8, persistent_workers=True)
+    trainloader = DataLoader(
+        trainset, 
+        batch_size=args.batch_size, 
+        shuffle=True, 
+        num_workers=4, 
+        persistent_workers=True,
+        pin_memory=True,
+        )
     
     # Initialize model with args instead of just lr
     model = ae_model(
@@ -111,11 +119,12 @@ def train(args):
 
             # log data to wandb
             if args.track:
-                wandb.log({
-                    'train/loss': loss / len(images),
-                    'train/recon_loss': extra_losses['recon_loss'] / len(images),
-                    'train/kl_loss': extra_losses['kl_loss'] / len(images)
-                })
+                wandb.log({'train/loss': loss / len(images)})
+                if args.model_name == 'vae':
+                    wandb.log({
+                        'train/recon_loss': extra_losses['recon_loss'] / len(images),
+                        'train/kl_loss': extra_losses['kl_loss'] / len(images)
+                    })
 
         # Step the scheduler after each epoch
         model.scheduler_step()
@@ -141,6 +150,7 @@ def train(args):
         if (epoch + 1) % 2 == 0:
             plot_reconstructions(model, trainloader, args.device, epoch, args.track)
             visualize_latent_space(model, trainloader, args.device, epoch, args.track)
+            visualize_similar_images(model, trainloader, args.device, epoch, args.track)
 
             if args.checkpoint:
                 checkpoint_dir = f'artifacts/{args.run_name}'

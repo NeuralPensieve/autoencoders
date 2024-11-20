@@ -30,6 +30,7 @@ class BaseAutoencoder(nn.Module):
         # Calculate final encoder output dimensions
         self.final_height = self.input_height // (2 ** self.n_downsample)
         self.final_width = self.input_width // (2 ** self.n_downsample)
+        print(f"Final encoder output dimensions: {self.final_height}x{self.final_width}")
         
         # Ensure dimensions are valid
         if self.final_height == 0 or self.final_width == 0:
@@ -37,6 +38,7 @@ class BaseAutoencoder(nn.Module):
         
         # Calculate flattened dimension for fully connected layers
         self.flat_dim = self.max_filter_size * self.final_height * self.final_width
+        print(f"Final encoder output dimensions: {self.flat_dim} (flattened).")
         
         # Common encoder and decoder components
         self.encoder = self._build_encoder()
@@ -191,7 +193,9 @@ class VanillaAutoencoder(BaseAutoencoder):
         )
 
     def _compute_loss(self, output: AutoencoderOutput, target: torch.Tensor) -> Tuple[torch.Tensor, dict]:
-        recon_loss = F.mse_loss(output.reconstruction, target, reduction='sum')
+        batch_size = target.size(0)
+
+        recon_loss = F.mse_loss(output.reconstruction, target, reduction='sum') / batch_size
         return recon_loss, {'recon_loss': recon_loss}
 
 
