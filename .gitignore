@@ -5,3 +5,5 @@ artifacts/
 .vscode/
 data/
 *.egg-info/
+.coverage
+htmlcov/

@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from autoencoders.models.models import VAE, VanillaAutoencoder
+from autoencoders.models import VAE, VanillaAutoencoder
 from autoencoders.utils.datasets import CustomImageDataset
 from autoencoders.utils.utils import (
     plot_reconstructions, 

@@ -1,7 +1,7 @@
 import tyro
 from dataclasses import dataclass
 
-from autoencoders.training.train import train
+from autoencoders.training import train
 
 @dataclass
 class Args:

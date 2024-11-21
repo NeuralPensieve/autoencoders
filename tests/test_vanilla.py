@@ -31,10 +31,9 @@ class TestVanillaAutoencoder(unittest.TestCase):
         model = VanillaAutoencoder(input_size, latent_dim, args)
         images = torch.randn(1, 3, 32, 32)
         output = model(images)
-        loss, loss_components = model._compute_loss(output, images)
-        self.assertIsNotNone(loss)
-        self.assertIsNotNone(loss_components)
-        self.assertIn('recon_loss', loss_components)
+        loss_output = model._compute_loss(output, images)
+        self.assertIsNotNone(loss_output.total_loss)
+        self.assertIsNotNone(loss_output.components)
 
 
 if __name__ == '__main__':
