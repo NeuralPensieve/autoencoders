@@ -75,6 +75,15 @@ class BaseAutoencoder(nn.Module):
                 self.optimizer,
                 gamma=0.85
             )
+        elif args.lr_schedule == 'plateau':
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode='min',          # reduce LR when metric stops decreasing
+                factor=0.5,          # multiply LR by this factor
+                patience=2,          # number of epochs with no improvement after which LR will be reduced
+                min_lr=args.min_lr,  # lower bound on the learning rate
+                verbose=True         # print message when LR is reduced
+            )
         else:
             self.scheduler = None
 

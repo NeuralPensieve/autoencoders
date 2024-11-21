@@ -1,0 +1,8 @@
+wandb/
+artifacts/
+**/__pycache__/
+*.pyc
+.vscode/
+tests/
+data/
+*.egg-info/

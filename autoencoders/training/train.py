@@ -1,9 +1,7 @@
 import os
-import tyro
 import wandb
 import pprint
 from tqdm import tqdm, trange
-from dataclasses import dataclass
 from datetime import datetime
 
 import torch
@@ -11,31 +9,13 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from models import VAE, VanillaAutoencoder
-from datasets import CustomImageDataset
-from utils import (
+from autoencoders.models.models import VAE, VanillaAutoencoder
+from autoencoders.utils.datasets import CustomImageDataset
+from autoencoders.utils.utils import (
     plot_reconstructions, 
     visualize_latent_space, 
     visualize_similar_images,
 )
-
-@dataclass
-class Args:
-    data_folder: str = '/home/alireza/workspace/CV/data/img_align_celeba'
-    data_name: str = 'celebA'
-    H: int = 218
-    W: int = 178
-    downsize: int = 2
-    epochs: int = 20
-    batch_size: int = 256
-    latent_dim: int = 256
-    lr: float = 1e-3
-    track: bool = False
-    model_name: str = 'vae'
-    limit: int = None
-    checkpoint: bool = False
-    lr_schedule: str = 'cosine'  # options: 'cosine', 'step', 'exponential'
-    min_lr: float = 1e-5  # minimum learning rate for cosine scheduling
 
 
 def train(args):
@@ -63,7 +43,7 @@ def train(args):
          wandb.run.log_code("../")
 
     # Device configuration
-    args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    args.device = torch.device('cuda' if args.cuda and torch.cuda.is_available() else 'cpu')
 
     new_size = (args.W // args.downsize, args.H // args.downsize)
     
@@ -113,6 +93,8 @@ def train(args):
             # Update running losses
             epoch_loss += loss
 
+            pbar.set_postfix({'loss': f'{loss/len(images):.4f}'})
+
             if args.model_name == 'vae':
                 epoch_recon_loss += extra_losses['recon_loss']
                 epoch_kl_loss += extra_losses['kl_loss']
@@ -127,7 +109,11 @@ def train(args):
                     })
 
         # Step the scheduler after each epoch
-        model.scheduler_step()
+        if model.scheduler:
+            if isinstance(model.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                model.scheduler.step(loss)
+            else:
+                model.scheduler.step()
         
         # Get current learning rate from the model
         current_lr = model.get_current_lr()
@@ -149,8 +135,13 @@ def train(args):
         # Generate and log visualizations
         if (epoch + 1) % 2 == 0:
             plot_reconstructions(model, trainloader, args.device, epoch, args.track)
-            visualize_latent_space(model, trainloader, args.device, epoch, args.track)
-            visualize_similar_images(model, trainloader, args.device, epoch, args.track)
+            if args.visualize_latent:
+                visualize_latent_space(model, trainloader, args.device, epoch, args.track)
+            if args.visualize_similar:
+                visualize_similar_images(
+                    model, trainloader, args.device, epoch, 
+                    args.track, sample_size=args.visualize_similar_sample
+                    )
 
             if args.checkpoint:
                 checkpoint_dir = f'artifacts/{args.run_name}'
@@ -159,8 +150,3 @@ def train(args):
                 torch.save(model.state_dict(), checkpoint_path)
                 if args.track:
                     wandb.save(checkpoint_path)
-
-
-if __name__ == "__main__":
-    args = tyro.cli(Args)
-    train(args)

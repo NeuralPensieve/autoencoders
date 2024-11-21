@@ -49,9 +49,9 @@ def plot_reconstructions(model, dataloader, device, epoch, track):
             })
         plt.close()
 
-def visualize_similar_images(model, dataloader, device, epoch, track=False, sample_size=0.1):
+def visualize_similar_images(model, dataloader, device, epoch, track=False, n=5, sample_size=0.1):
     """
-    Creates a 3x3 collage with a random reference image and its 8 most similar images
+    Creates a nxn collage with a random reference image and its n**2-1 most similar images
     based on latent space embeddings. Uses batch processing and data sampling for memory efficiency.
     
     Args:
@@ -63,6 +63,8 @@ def visualize_similar_images(model, dataloader, device, epoch, track=False, samp
         sample_size: Fraction of dataset to sample (between 0 and 1)
     """
     model.eval()
+
+    N = n ** 2 - 1 
     
     # Calculate number of samples
     dataset_size = len(dataloader.dataset)
@@ -116,8 +118,8 @@ def visualize_similar_images(model, dataloader, device, epoch, track=False, samp
         all_embeddings_norm = F.normalize(all_embeddings, p=2, dim=1)
         similarities = torch.mm(ref_embedding_norm, all_embeddings_norm.t())[0]
         
-        # Get indices of top 8 most similar images
-        _, top_indices = similarities.topk(9)  # Get 9 (including the reference)
+        # Get indices of top N most similar images
+        _, top_indices = similarities.topk(N)  # Get 9 (including the reference)
         
         # Get the actual dataset indices for the similar images
         similar_dataset_indices = [all_image_indices[i] for i in top_indices]
@@ -133,10 +135,10 @@ def visualize_similar_images(model, dataloader, device, epoch, track=False, samp
         grid = make_grid(grid_images, nrow=3, normalize=True, padding=2)
         
         # Plot
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(3*n, 3*n))
         plt.imshow(grid.permute(1, 2, 0))
         plt.axis('off')
-        plt.title(f'Similar Images (Epoch {epoch+1})\nReference image (top-left) and its 8 nearest neighbors')
+        plt.title(f'Similar Images (Epoch {epoch+1})\nReference image (top-left) and its {N} nearest neighbors')
         
         # Save or log to wandb
         if track:
