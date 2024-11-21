@@ -1,4 +1,4 @@
-from .base_autoencoder import BaseAutoencoder, AutoencoderOutput, LossOutput
-from .vanilla_autoencoder import VanillaAutoencoder
-from .vae_autoencoder import VAE
+from .base import BaseAutoencoder, AutoencoderOutput, LossOutput
+from .vanilla import VanillaAutoencoder
+from .vae import VAE
 # from .models import VanillaAutoencoder, VAE
