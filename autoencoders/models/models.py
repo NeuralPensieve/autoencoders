@@ -145,16 +145,14 @@ class BaseAutoencoder(nn.Module):
         self.train()
         images = images.to(self.device)
         
-        # Zero gradients
-        self.optimizer.zero_grad()
-        
         # Forward pass
         output = self(images)
         
         # Compute loss
         total_loss, loss_components = self._compute_loss(output, images)
         
-        # Backward pass
+        # Backprop
+        self.optimizer.zero_grad()
         total_loss.backward()
         
         # Gradient clipping
@@ -168,13 +166,6 @@ class BaseAutoencoder(nn.Module):
             components={k: v.item() if isinstance(v, torch.Tensor) else v 
                        for k, v in loss_components.items()}
         )
-    
-    def scheduler_step(self):
-        """
-        Step the learning rate scheduler. Call this after each epoch.
-        """
-        if self.scheduler is not None:
-            self.scheduler.step()
 
     def get_current_lr(self):
         """
