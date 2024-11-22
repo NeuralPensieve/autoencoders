@@ -1,5 +1,6 @@
 import tyro
 from dataclasses import dataclass
+from typing import Optional
 
 from autoencoders.training import train
 
@@ -7,11 +8,13 @@ from autoencoders.training import train
 class Args:
     """Configuration class for VAE training parameters."""
     model_name: str = 'vanilla'
-    """Identifier for the model architecture. Options: 'vanilla', 'vae'"""
+    """Identifier for the model architecture. Options: 'vanilla', 'vae', 'vqvae'"""
     data_folder: str = 'data/celeba_aligned'
     """Root directory containing the image dataset"""
     data_name: str = 'celebA'
     """Name of the dataset being used"""
+    wandb_project: str = 'autoencoders'
+    """Name of the Weights & Biases project for logging"""
     cuda: bool = True
     """Flag to enable CUDA training"""
     H: int = 218
@@ -28,7 +31,7 @@ class Args:
     """Dimension of the latent space representation"""
     track: bool = False
     """Flag to enable training progress tracking"""
-    limit: int = None
+    limit: Optional[int] = None
     """Optional limit on number of training samples (None for full dataset)"""
     checkpoint: bool = False
     """Flag to enable model checkpointing during training"""
@@ -44,6 +47,15 @@ class Args:
     """Flag to enable visualization of latent space"""
     visualize_similar_sample: float = 0.1
     """Fraction of dataset to use for similarity visualization"""
+    ### VQ-VAE specific
+    num_embeddings: int = 1024
+    """Number of embeddings for the VQ-VAE model"""
+    commitment_cost: float = 0.25
+    """Commitment cost for the VQ-VAE model"""
+    use_ema: bool = False
+    """Flag to enable Exponential Moving Average (EMA) for the VQ-VAE model"""
+    ema_decay: float = 0.99
+    """Decay rate for the EMA of the VQ-VAE model"""
 
 
 if __name__ == "__main__":

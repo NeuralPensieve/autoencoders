@@ -80,7 +80,6 @@ class BaseAutoencoder(nn.Module):
                 factor=0.5,          # multiply LR by this factor
                 patience=2,          # number of epochs with no improvement after which LR will be reduced
                 min_lr=args.min_lr,  # lower bound on the learning rate
-                verbose=True         # print message when LR is reduced
             )
         else:
             self.scheduler = None
