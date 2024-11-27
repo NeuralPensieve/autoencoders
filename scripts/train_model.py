@@ -4,26 +4,28 @@ from typing import Optional
 
 from autoencoders.training import train
 
+
 @dataclass
 class Args:
     """Configuration class for VAE training parameters."""
-    model_name: str = 'vanilla'
+
+    model_name: str = "vqvae"
     """Identifier for the model architecture. Options: 'vanilla', 'vae', 'vqvae'"""
-    data_folder: str = 'data/celeba_aligned'
+    data_folder: str = "data/celeba_aligned"
     """Root directory containing the image dataset"""
-    data_name: str = 'celebA'
+    data_name: str = "celebA"
     """Name of the dataset being used"""
-    wandb_project: str = 'autoencoders'
+    wandb_project: str = "autoencoders"
     """Name of the Weights & Biases project for logging"""
     cuda: bool = True
     """Flag to enable CUDA training"""
-    H: int = 218
-    """Original image height dimension"""
     W: int = 178
     """Original image width dimension"""
+    H: int = 218
+    """Original image height dimension"""
     downsize: int = 2
     """Factor by which to reduce image dimensions"""
-    epochs: int = 50
+    epochs: int = 10
     """Number of training epochs"""
     batch_size: int = 256
     """Number of samples per training batch"""
@@ -39,7 +41,7 @@ class Args:
     """Initial learning rate for optimization"""
     min_lr: float = 1e-5
     """Minimum learning rate threshold"""
-    lr_schedule: str = 'plateau'
+    lr_schedule: str = "plateau"
     """Learning rate scheduling strategy. Options: 'cosine', 'step', 'exponential', 'plateau'"""
     visualize_similar: bool = True
     """Flag to enable visualization of similar images"""
@@ -48,11 +50,13 @@ class Args:
     visualize_similar_sample: float = 0.1
     """Fraction of dataset to use for similarity visualization"""
     ### VQ-VAE specific
-    num_embeddings: int = 1024
+    num_embeddings: int = 512
     """Number of embeddings for the VQ-VAE model"""
+    embedding_dim: int = 64
+    """Dimension of the embedding space for the VQ-VAE model"""
     commitment_cost: float = 0.25
     """Commitment cost for the VQ-VAE model"""
-    use_ema: bool = False
+    use_ema: bool = True
     """Flag to enable Exponential Moving Average (EMA) for the VQ-VAE model"""
     ema_decay: float = 0.99
     """Decay rate for the EMA of the VQ-VAE model"""
