@@ -1,5 +1,5 @@
 import tyro
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from autoencoders.training import train
@@ -9,7 +9,7 @@ from autoencoders.training import train
 class Args:
     """Configuration class for VAE training parameters."""
 
-    model_name: str = "vqvae"
+    model_name: str = "vae"
     """Identifier for the model architecture. Options: 'vanilla', 'vae', 'vqvae'"""
     data_folder: str = "data/celeba_aligned"
     """Root directory containing the image dataset"""
@@ -25,24 +25,28 @@ class Args:
     """Original image height dimension"""
     downsize: int = 2
     """Factor by which to reduce image dimensions"""
-    epochs: int = 10
+    epochs: int = 30
     """Number of training epochs"""
     batch_size: int = 256
     """Number of samples per training batch"""
     latent_dim: int = 256
     """Dimension of the latent space representation"""
+    hidden_dims: list = field(default_factory=lambda: [32, 64, 128, 256])
+    """Hidden dimensions for the encoder and decoder"""
     track: bool = False
     """Flag to enable training progress tracking"""
     limit: Optional[int] = None
     """Optional limit on number of training samples (None for full dataset)"""
     checkpoint: bool = False
     """Flag to enable model checkpointing during training"""
-    lr: float = 1e-3
+    lr: float = 2e-4
     """Initial learning rate for optimization"""
     min_lr: float = 1e-5
     """Minimum learning rate threshold"""
-    lr_schedule: str = "plateau"
+    lr_schedule: str = "none"
     """Learning rate scheduling strategy. Options: 'cosine', 'step', 'exponential', 'plateau'"""
+    data_variance: float = 0.0891
+    """Estimated variance of the input data, hardcoded for celebA"""
     visualize_similar: bool = True
     """Flag to enable visualization of similar images"""
     visualize_latent: bool = False

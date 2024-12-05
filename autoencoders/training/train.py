@@ -66,12 +66,14 @@ def train(args: Any) -> None:
     dataloader = setup_dataloader(args)
     metrics_tracker = MetricsTracker()
 
-    if args.model_name in ["vqvae"]:
+    if args.data_variance is None:
         print("Calculating data variance...")
         batch_size = 1000 if args.limit else 10_000
         data_variance = calculate_data_variance(args, batch_size)
         model.set_data_variance(data_variance)
         print(f"Data variance: {data_variance:.4f}")
+    else:
+        model.set_data_variance(args.data_variance)
 
     print(f"Number of model parameters: {sum(p.numel() for p in model.parameters()):,}")
 

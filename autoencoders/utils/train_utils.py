@@ -12,7 +12,6 @@ from autoencoders.models import VAE, VanillaAutoencoder, VQVAE
 from autoencoders.utils.visualizations import (
     plot_reconstructions,
     visualize_latent_space,
-    visualize_similar_images,
 )
 
 
