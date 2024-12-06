@@ -9,6 +9,8 @@ from autoencoders.training import train
 class Args:
     """Configuration class for VAE training parameters."""
 
+    exp_name: str
+    """Name of the experiment being run"""
     model_name: str = "vae"
     """Identifier for the model architecture. Options: 'vanilla', 'vae', 'vqvae'"""
     data_folder: str = "data/celeba_aligned"
@@ -47,14 +49,20 @@ class Args:
     """Learning rate scheduling strategy. Options: 'cosine', 'step', 'exponential', 'plateau'"""
     data_variance: float = 0.0891
     """Estimated variance of the input data, hardcoded for celebA"""
-    free_bits: float = 1.0
-    """Number of bits to use for free bits"""
+    ### Visualization
+    image_ids: list = field(default_factory=lambda: [0, 1, 5, 18, 20])
+    """List of image indices to visualize"""
     visualize_similar: bool = True
     """Flag to enable visualization of similar images"""
     visualize_latent: bool = False
     """Flag to enable visualization of latent space"""
     visualize_similar_sample: float = 0.1
     """Fraction of dataset to use for similarity visualization"""
+    ### VAE specific
+    free_bits: float = 1.0
+    """Number of bits to use for free bits"""
+    free_bits_gamma: float = 1.0
+    """Decay rate for free bits"""
     ### VQ-VAE specific
     num_embeddings: int = 512
     """Number of embeddings for the VQ-VAE model"""

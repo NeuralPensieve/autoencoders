@@ -108,3 +108,17 @@ class BaseAutoencoder(nn.Module):
         Must return an AutoencoderOutput object.
         """
         raise NotImplementedError("Subclasses must implement forward method")
+
+    def get_embeddings(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Get the embeddings of the model. Should be implemented by subclasses.
+        Must return an tensor.
+        """
+        raise NotImplementedError
+
+    def get_reconstructions(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Get the reconstructions of the model. Should be implemented by subclasses.
+        Must return an tensor.
+        """
+        raise NotImplementedError

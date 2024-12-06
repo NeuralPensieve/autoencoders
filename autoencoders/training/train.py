@@ -55,8 +55,7 @@ def train_epoch(
 def train(args: Any) -> None:
     """Main training loop."""
     # Setup run name and logging
-    args.exp_name = f"{args.data_name}_{args.model_name}"
-    args.run_name = f"{args.exp_name}__{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    args.run_name = f"{args.data_name}_{args.model_name}__{datetime.now().strftime('%Y%m%d_%H%M%S')}_{args.exp_name}"
     args.device = torch.device(
         "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
     )
@@ -94,7 +93,8 @@ def train(args: Any) -> None:
         if args.track:
             log_to_wandb("epoch", epoch_metrics, epoch + 1)
 
-        # Periodic evaluation and checkpointing
-        if (epoch + 1) % 2 == 0:
-            evaluate_and_visualize(model, dataloader, epoch, args)
-            save_checkpoint(model, epoch, args)
+        # Evaluation and visualization
+        evaluate_and_visualize(model, dataloader, epoch, args)
+
+    # Save final checkpoint
+    save_checkpoint(model, epoch, args)

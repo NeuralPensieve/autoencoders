@@ -84,12 +84,6 @@ class VAEDecoder(nn.Module):
                     ),
                     nn.BatchNorm2d(hidden_dims[i + 1]),
                     nn.ReLU(),
-                    # Add additional convolution for better feature learning
-                    nn.Conv2d(
-                        hidden_dims[i + 1], hidden_dims[i + 1], kernel_size=3, padding=1
-                    ),
-                    nn.BatchNorm2d(hidden_dims[i + 1]),
-                    nn.ReLU(),
                 )
             )
 
@@ -138,7 +132,11 @@ class VAE(BaseAutoencoder):
         # Initialize scheduler based on args
         self._init_scheduler(args)
 
-        self.free_bits = torch.tensor(args.free_bits).to(args.device)
+        self.free_bits = torch.tensor(args.free_bits, requires_grad=False).to(
+            args.device
+        )
+
+        self.free_bits_gamma = args.free_bits_gamma
 
     def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * log_var)
@@ -161,28 +159,58 @@ class VAE(BaseAutoencoder):
             parameters={"mu": mu, "log_var": log_var},
         )
 
+    def get_embeddings(self, x):
+        # Encode
+        mu, log_var = self.encoder(x)
+
+        # Reparameterize
+        z = self.reparameterize(mu, log_var)
+
+        return z
+
+    def get_reconstructions(self, z):
+        # Decode
+        reconstruction = self.decoder(z)
+
+        return reconstruction
+
     def _compute_loss(
         self, output: AutoencoderOutput, target: torch.Tensor
     ) -> LossOutput:
         mu = output.parameters["mu"]
         log_var = output.parameters["log_var"]
 
-        recon_loss = F.mse_loss(output.reconstruction, target) / self.data_variance
+        recon_loss = F.mse_loss(output.reconstruction, target)
 
         # Compute KL per dimension
         kl_per_dim = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
 
         # Apply free bits constraint per dimension
-        kl_per_dim = torch.max(kl_per_dim, self.free_bits)
-        kl_div = torch.mean(kl_per_dim)
+        kl_per_dim_max = torch.max(kl_per_dim, self.free_bits)
+        kl_div = torch.mean(kl_per_dim_max)
 
-        total_loss = recon_loss + kl_div
+        total_loss = recon_loss / self.data_variance + kl_div
+
+        self.free_bits = self.free_bits * self.free_bits_gamma
 
         return LossOutput(
             total_loss=total_loss,
             components={
-                "recon_loss": recon_loss,
-                "kl_loss": kl_div,
+                "recon_loss": recon_loss.item(),
+                "kl_loss": kl_div.item(),
+                "std_mean_ratio": torch.mean(
+                    torch.exp(0.5 * log_var) / mu.abs()
+                ).item(),
+                "mean_mu": torch.mean(mu.abs()).item(),
+                "mean_std": torch.mean(torch.exp(0.5 * log_var)).item(),
+                "mean_kl_per_dim": torch.mean(kl_per_dim).item(),
+                "min_kl_per_dim": torch.mean(
+                    torch.amin(kl_per_dim, dim=(1, 2, 3))
+                ).item(),
+                "max_kl_per_dim": torch.mean(
+                    torch.amax(kl_per_dim, dim=(1, 2, 3))
+                ).item(),
+                "free_bits": self.free_bits.item(),
             },
         )
 

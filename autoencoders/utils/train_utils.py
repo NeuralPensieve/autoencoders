@@ -12,6 +12,7 @@ from autoencoders.models import VAE, VanillaAutoencoder, VQVAE
 from autoencoders.utils.visualizations import (
     plot_reconstructions,
     visualize_latent_space,
+    plot_interpolated_reconstrunctions,
 )
 
 
@@ -156,6 +157,9 @@ def evaluate_and_visualize(
 
     model.eval()
     plot_reconstructions(model, dataloader, args.device, epoch, args.track)
+    plot_interpolated_reconstrunctions(
+        model, dataloader, args.device, epoch, args.track, args.image_ids
+    )
 
     if args.visualize_latent:
         visualize_latent_space(model, dataloader, args.device, epoch, args.track)
