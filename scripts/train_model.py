@@ -47,6 +47,8 @@ class Args:
     """Learning rate scheduling strategy. Options: 'cosine', 'step', 'exponential', 'plateau'"""
     data_variance: float = 0.0891
     """Estimated variance of the input data, hardcoded for celebA"""
+    free_bits: float = 1.0
+    """Number of bits to use for free bits"""
     visualize_similar: bool = True
     """Flag to enable visualization of similar images"""
     visualize_latent: bool = False

@@ -138,6 +138,8 @@ class VAE(BaseAutoencoder):
         # Initialize scheduler based on args
         self._init_scheduler(args)
 
+        self.free_bits = torch.tensor(args.free_bits).to(args.device)
+
     def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
@@ -165,33 +167,22 @@ class VAE(BaseAutoencoder):
         mu = output.parameters["mu"]
         log_var = output.parameters["log_var"]
 
-        # # Reconstruction loss
-        # recon_loss = (
-        #     F.mse_loss(output.reconstruction, target, reduction="sum") / batch_size
-        # )
-
-        # # KL divergence
-        # kl_div = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) / batch_size
-
         recon_loss = F.mse_loss(output.reconstruction, target) / self.data_variance
-        kl_div = -0.5 * torch.mean(1 + log_var - mu.pow(2) - log_var.exp())
 
-        kl_weight = 1.0
+        # Compute KL per dimension
+        kl_per_dim = -0.5 * (1 + log_var - mu.pow(2) - log_var.exp())
 
-        # # Dynamic KL weight adjustment based on target KL
-        # kl_weight = 1.0  # base weight
-        # target_kl = 0.5  # target KL value
-        # kl_weight = kl_weight * (1.0 + torch.abs(kl_div - target_kl))
+        # Apply free bits constraint per dimension
+        kl_per_dim = torch.max(kl_per_dim, self.free_bits)
+        kl_div = torch.mean(kl_per_dim)
 
-        # Total loss
-        total_loss = recon_loss + kl_weight * kl_div
+        total_loss = recon_loss + kl_div
 
         return LossOutput(
             total_loss=total_loss,
             components={
                 "recon_loss": recon_loss,
                 "kl_loss": kl_div,
-                "kl_weight": kl_weight,
             },
         )
 
