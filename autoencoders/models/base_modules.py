@@ -1,11 +1,7 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-from autoencoders.models import BaseAutoencoder, AutoencoderOutput, LossOutput
 
 
-class Encoder(nn.Module):
+class BaseEncoder(nn.Module):
     def __init__(
         self,
         input_channels=3,
@@ -18,7 +14,7 @@ class Encoder(nn.Module):
         modules = []
         in_channels = input_channels
 
-        for h_dim in hidden_dims[:-1]:
+        for h_dim in hidden_dims:
             modules.append(
                 nn.Sequential(
                     nn.Conv2d(in_channels, h_dim, kernel_size=3, stride=2, padding=1),
@@ -32,26 +28,13 @@ class Encoder(nn.Module):
             )
             in_channels = h_dim
 
-        modules.append(
-            nn.Sequential(
-                nn.Conv2d(
-                    in_channels, hidden_dims[-1], kernel_size=3, stride=2, padding=1
-                ),
-                nn.BatchNorm2d(hidden_dims[-1]),
-                nn.ReLU(),
-                # Add residual connections
-                nn.Conv2d(hidden_dims[-1], hidden_dims[-1], kernel_size=3, padding=1),
-                nn.BatchNorm2d(hidden_dims[-1]),
-            )
-        )
-
         self.encoder = nn.Sequential(*modules)
 
-    def forward(self, x):
+    def _encode(self, x):
         return self.encoder(x)
 
 
-class Decoder(nn.Module):
+class BaseDecoder(nn.Module):
     def __init__(
         self,
         output_size,
@@ -98,57 +81,11 @@ class Decoder(nn.Module):
         )
 
         self.decoder = nn.Sequential(*modules)
-
         self.upsample = nn.Upsample(
             size=(output_size[0], output_size[1]),
             mode="bilinear",
             align_corners=True,
         )
 
-    def forward(self, z):
+    def _decode(self, z):
         return self.upsample(self.decoder(z))
-
-
-class VanillaAutoencoder(BaseAutoencoder):
-    def __init__(self, input_size, latent_dim, args):
-        super().__init__(input_size, latent_dim, args)
-
-        self.encoder = Encoder(hidden_dims=args.hidden_dims)
-        self.decoder = Decoder(hidden_dims=args.hidden_dims, output_size=input_size)
-
-        # Create scheduler parameters
-        self.initial_lr = args.lr
-
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=self.initial_lr, weight_decay=1e-5
-        )
-
-        # Initialize scheduler based on args
-        self._init_scheduler(args)
-
-    def forward(self, x: torch.Tensor) -> AutoencoderOutput:
-        z = self.encoder(x)
-        reconstruction = self.decoder(z)
-        return AutoencoderOutput(reconstruction=reconstruction, latent=z)
-
-    def get_embeddings(self, x):
-        # Encode
-        return self.encoder(x)
-
-    def get_reconstructions(self, z):
-        # Decode
-        return self.decoder(z)
-
-    def _compute_loss(
-        self, output: AutoencoderOutput, target: torch.Tensor
-    ) -> LossOutput:
-        recon_loss = F.mse_loss(output.reconstruction, target)
-
-        total_loss = recon_loss / self.data_variance
-        return LossOutput(
-            total_loss=total_loss,
-            components={"recon_loss": recon_loss},
-        )
-
-    def set_data_variance(self, data_variance):
-        self.data_variance = data_variance

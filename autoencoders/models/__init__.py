@@ -1,8 +1,10 @@
-from .base import (
+from .base_autoencoder import (
     BaseAutoencoder,
     AutoencoderOutput,
     LossOutput,
 )
-from .vanilla import VanillaAutoencoder
-from .vae import VAE
+from .base_modules import BaseEncoder, BaseDecoder
+
+from .vanilla_autoencoder import VanillaAutoencoder
+from .vae_autoencoder import VAE
 from .vqvae import VQVAE
