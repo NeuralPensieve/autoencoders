@@ -1,14 +1,24 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple
 
 from autoencoders.models import (
     AutoencoderOutput,
     LossOutput,
-    Encoder,
-    Decoder,
+    BaseAutoencoder,
+    BaseEncoder,
+    BaseDecoder,
 )
+
+
+class VQVAEEncoder(BaseEncoder):
+    def forward(self, x):
+        return self._encode(x)
+
+
+class VQVAEDecoder(BaseDecoder):
+    def forward(self, z):
+        return self._decode(z)
 
 
 class VectorQuantizerEMA(nn.Module):
@@ -98,13 +108,12 @@ class VectorQuantizerEMA(nn.Module):
         )
 
 
-class VQVAE(nn.Module):
-    def __init__(self, input_size: Tuple[int, int], latent_dim: int, args):
-        super(VQVAE, self).__init__()
-        self.num_embeddings = args.num_embeddings
-        self.device = args.device
+class VQVAE(BaseAutoencoder):
+    def __init__(self, input_size, latent_dim, args):
+        super().__init__(input_size, latent_dim, args)
 
-        # Vector quantizer
+        self.num_embeddings = args.num_embeddings
+
         self.vector_quantizer = VectorQuantizerEMA(
             num_embeddings=args.num_embeddings,
             embedding_dim=args.embedding_dim,
@@ -112,34 +121,16 @@ class VQVAE(nn.Module):
             decay=args.ema_decay,
         )
 
-        self.encoder = Encoder(
-            in_channels=3,
-            num_hiddens=128,
-            num_residual_layers=2,
-            num_residual_hiddens=32,
-        )
-        self._pre_vq_conv = nn.Conv2d(
-            in_channels=128,
-            out_channels=64,
-            kernel_size=1,
-            stride=1,
+        self.encoder = VQVAEEncoder(hidden_dims=args.hidden_dims)
+        self.decoder = VQVAEDecoder(
+            hidden_dims=args.hidden_dims, output_size=input_size
         )
 
-        self.decoder = Decoder(
-            in_channels=64,
-            num_hiddens=128,
-            num_residual_layers=2,
-            num_residual_hiddens=32,
-            W=input_size[0],
-            H=input_size[1],
-        )
-
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=args.lr, amsgrad=False)
-        self.scheduler = None
+        # Initialize optimizer after model is constructed
+        self._init_optimizer()
 
     def forward(self, x):
         z = self.encoder(x)
-        z = self._pre_vq_conv(z)
         vq_loss, quantized, perplexity, encodings, encoding_indices = (
             self.vector_quantizer(z)
         )
@@ -161,50 +152,30 @@ class VQVAE(nn.Module):
             },
         )
 
+    def get_embeddings(self, x):
+        z = self.encoder(x)
+        vq_loss, quantized, perplexity, encodings, encoding_indices = (
+            self.vector_quantizer(z)
+        )
+
+        return quantized
+
+    def get_reconstructions(self, z):
+        return self.decoder(z)
+
     def _compute_loss(
         self, output: AutoencoderOutput, target: torch.Tensor
     ) -> LossOutput:
-        recon_loss = F.mse_loss(output.reconstruction, target) / self.data_variance
+        recon_loss = F.mse_loss(output.reconstruction, target)
         vq_loss = output.parameters["vq_loss"]
-        total_loss = recon_loss + vq_loss
+        total_loss = recon_loss / self.data_variance + vq_loss
 
         return LossOutput(
             total_loss=total_loss,
             components={
-                "reconstruction_loss": recon_loss,
+                "recon_loss": recon_loss,
                 "vq_loss": vq_loss,
                 "perplexity": output.parameters["perplexity"],
                 "codebook_usage": output.parameters["codebook_usage"],
             },
         )
-
-    def training_step(self, images: torch.Tensor) -> LossOutput:
-        """
-        Perform a single training step.
-        """
-        self.train()
-        images = images.to(self.device)
-
-        # Forward pass
-        output = self(images)
-
-        # Compute loss
-        loss_output = self._compute_loss(output, images)
-
-        # Backprop
-        self.optimizer.zero_grad()
-        loss_output.total_loss.backward()
-
-        # Gradient clipping
-        # torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
-
-        # Optimizer step
-        self.optimizer.step()
-
-        return loss_output
-
-    def set_data_variance(self, data_variance):
-        self.data_variance = data_variance
-
-    def get_current_lr(self):
-        return self.optimizer.param_groups[0]["lr"]

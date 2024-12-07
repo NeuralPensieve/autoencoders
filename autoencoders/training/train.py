@@ -74,7 +74,8 @@ def train(args: Any) -> None:
     else:
         model.set_data_variance(args.data_variance)
 
-    print(f"Number of model parameters: {sum(p.numel() for p in model.parameters()):,}")
+    args.num_parameters = sum(p.numel() for p in model.parameters())
+    print(f"Number of model parameters: {args.num_parameters:,}")
 
     for epoch in trange(args.epochs):
         train_epoch(model, dataloader, metrics_tracker, epoch, args.epochs, args)
