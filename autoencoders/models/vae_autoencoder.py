@@ -11,7 +11,6 @@ from autoencoders.models import (
 )
 
 
-# vae.py
 class VAEEncoder(BaseEncoder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
